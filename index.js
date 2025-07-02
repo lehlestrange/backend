@@ -1,46 +1,73 @@
-const express = require ("express") //busca biblioteca express
-const app = express() // utilizando express
-const port = 6661 // porta
+const express = require ("express") 
+const app = express() 
+const {verifyEmailOnDB, verifyPasswords, createUser} = require("./services/users")
+const port = 6661 
 
-app.use(express.json()) //middleware, para usar body
+app.use(express.json()) 
 
-//body nao pode ser usado como GET
-app.post("/user", (req, res) => {
-    const body = req.body
-    res.json(body).status(201)
+
+app.post("/api/auth/singup", async (req, res) => {
+
+    const {password, passwordConfirmation, email} = req.body
+
+    //verificar se o email recebido ja existe na BD
+    const email_ok = await verifyEmailOnDB(email)
+
+    //verificar se o password esta correto
+    const password_ok = verifyPasswords(password, passwordConfirmation)
+
+    if (!email_ok || !password_ok){ 
+        return res.status(400).json(
+            {
+                message: "Os dados introduzidos não são válidos.",
+	            errors: {
+		        email: !email_ok ? "O endereço introduzido já está registado.": undefined,
+		        passwordConfirmation: !password_ok ? "As passwords não coincidem.": undefined
+                }
+            }
+        )
+    }
+    const user_id = await createUser({password, email})
 })
-
-app.get ('/', (req, res) => {
-    res.send("heyhey")
-})
-
-/*app.listen (6661, () => {
-    console.log ("Servidor iniciado")
-})
-
-//colocar : que vai passar a ser a variavel
-app.get("/:name"), (req, res) => {
-    const name = req.params.name 
-    res.send (`Ola ${name}`)
+/*POST /api/auth/signup
+{
+    "email": "teste@teste.com",
+    "password": "A1b2C3d$",
+    "passwordConfirmation": "A1b2C3d$"
+}
+{
+	"message": "Os dados introduzidos não são válidos.",
+	"errors": {
+		"email": "O endereço introduzido já está registado.",
+		"passwordConfirmation": "As passwords não coincidem."
+	}
 }
 
-app.get("/:soma/:x/:y"), (req, res) => {
-    const {x, y} = req.params
-    res.send (Resultado: `${Number(x) + Number(y)}`)
+{ 
+    "message": "Utilizador Criado com Sucesso!",
+    "_id": "61db50c23dc51c6a5d88d4ff"
+}\*/
 
-app.get("/:subtrair"), (req, res) => {
-    const {x, y} = req.query
-    res.send (Resultado: `${Number(x) - Number(y)}`)
-}*/
 
-app.listen(port) // sempre utilizar 
 
-/*function calcularAreaDodecaedro(aresta) {
-  if (aresta < 0) {
-    return "Por favor insira um valor positivo.";
-  }
+app.post("/api/auth/login", (req, res) => {
 
-  const fator = 3 * Math.sqrt(25 + 10 * Math.sqrt(5));
-  const area = fator * Math.pow(aresta, 2);
-  return Math.round(area);
-}
+const {email, pasword} = req.body
+const token = createToken()
+return res.status(200).jason({token:token})
+})
+
+
+
+
+//POST /api/auth/login
+
+/*{ "message": "O utilizador não foi encontrado!" }
+ { "message": "A password introduzida é inválida!" }
+*/
+
+//GET /api/user
+app.get("/api/user", (req, res) => {
+
+})
+//GET /api/user/:id
